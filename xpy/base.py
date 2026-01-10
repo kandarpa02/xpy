@@ -1,4 +1,5 @@
 from .backend import xp
+from typing import Callable
 
 lib = xp()
 
@@ -168,4 +169,10 @@ MINIMAL_PRIMITIVES = [
 ]
 """
 
-print(f"Total primitives loaded: {len([x for x in dir(Primitives) if not x.startswith('_')])}")
+# print(f"Total primitives loaded: {len([x for x in dir(Primitives) if not x.startswith('_')])}")
+
+
+def construct(func:Callable, name:str):
+    global Primitives
+    setattr(Primitives, name, staticmethod(func))
+

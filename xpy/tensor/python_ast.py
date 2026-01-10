@@ -36,9 +36,12 @@ def build_ast(root, name=None):
                     id=names[p],
                     ctx=ast.Load()
                 )
-                for p in node.parents
+                for p in node.parents],
+                
+            keywords=[
+                ast.keyword(k, v) for k, v in node.kwds.items()
             ],
-            keywords=[],
+    
         )
 
         body.append(
