@@ -3,9 +3,9 @@ from .base import Tensor
 from ..base import Primitives
 from typing import Callable, Sequence
 
-def forward(root:Sequence[Tensor]|Tensor, name:str|None=None) -> Callable:
+def forward(root:Sequence[Tensor]|Tensor, inputs:list[Tensor], name:str|None=None) -> Callable:
 
-  module = build_ast(root, name)
+  module = build_ast(root, inputs=inputs, name=name)
   code = compile(module, mode='exec', filename='compiledfunction')
   namespace = {'PRIM':Primitives()}
   exec(code, namespace)

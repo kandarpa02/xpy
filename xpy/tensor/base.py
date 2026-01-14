@@ -1,16 +1,5 @@
-from typing import Any, Sequence
-from .utils import (
-    _unbroadcast,
-    broadcast_shape,
-    name_filler,
-    reduced_shape,
-    broadcast_to,
-    matmul_shape,
-    reshape_shape,
-    transpose_shape,
-    max_min_shape,
-    infer_getitem_shape,
-)
+from typing import Any, Sequence, Callable
+from .utils import name_filler
 from ..backend  import xp
 lib = xp()
 
@@ -67,8 +56,29 @@ class Tensor:
     out = Tensor(parents=args, name=prim, params=params)
     out.prim = prim
     return out
-
+  
   @staticmethod
   def constant(value:Any):
     return literal_to_ast(value)
+  
+
+class GFunc:
+  def __init__(self) -> None:
+    self.parents = None
+
+  def save(self, *args):
+    self.parents = list(args)
+
+  def saved_tensor(self):
+    return self.parents[0] if len(self.parents)==1 else tuple(self.parents)
+
+  def forward(self, *args):
+      raise NotImplementedError
+  
+  def backward(self, grad):
+    raise NotImplementedError
+  
+  @classmethod
+  def apply(cls, *args):
+    return cls().forward(*args)
   

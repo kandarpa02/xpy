@@ -12,32 +12,55 @@ def assign_names(topo):
 			temp_i += 1
 	return names
 
+# def collect_leaves(roots):
+# 	seen = set()
+# 	leaves = []
+
+# 	def visit(n):
+# 		if n in seen:
+# 				return
+# 		seen.add(n)
+
+# 		if n.parents == ():
+# 				leaves.append(n)
+# 		else:
+# 				for p in n.parents:
+# 						visit(p)
+
+# 	for r in roots:
+# 			visit(r)
+
+# 	return leaves
 
 def collect_leaves(roots):
-	seen = set()
-	leaves = []
+    seen = set()
+    leaves = []
 
-	def visit(n):
-		if n in seen:
-				return
-		seen.add(n)
+    def visit(n):
+        if id(n) in seen:
+            return
+        seen.add(id(n))
 
-		if n.parents == ():
-				leaves.append(n)
-		else:
-				for p in n.parents:
-						visit(p)
+        if n.parents == ():
+            leaves.append(n)
+        else:
+            for p in n.parents:
+                visit(p)
 
-	for r in roots:
-			visit(r)
+    for r in roots:
+        visit(r)
 
-	return leaves
+    return leaves
+
+# def auto_index_leaves(roots):
+# 	leaves = collect_leaves(roots)
+# 	for i, leaf in enumerate(leaves):
+# 		leaf.index = i
 
 def auto_index_leaves(roots):
-	leaves = collect_leaves(roots)
-	for i, leaf in enumerate(leaves):
-		leaf.index = i
-
+    leaves = collect_leaves(roots)
+    for i, leaf in enumerate(leaves):
+        leaf.index = i
 
 def topo_sort(roots):
 	auto_index_leaves(roots)
