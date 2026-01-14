@@ -1,14 +1,9 @@
-from ast import Name, FunctionDef, Return, Call, Module, arg, arguments
-from typing import Callable
-from .build_graph import topo_sort, auto_index_leaves, assign_names
-from ..tensor.base import Tensor
-
 import ast
+from typing import Sequence, Any, Optional
+from .base import Tensor
+from ..base import Primitives
+from .build_graph import topo_sort, auto_index_leaves, assign_names
 
-def _as_roots(root):
-    if isinstance(root, (list, tuple)):
-        return tuple(root)
-    return (root,)
 
 def _as_roots(root):
     if isinstance(root, (list, tuple)):
