@@ -1,13 +1,20 @@
 from .python_ast import build_ast
 from .base import Tensor
 from ..base import Primitives
-from typing import Callable, Sequence
+from typing import Callable, Sequence, Optional
 
-def forward(root:Sequence[Tensor]|Tensor, inputs:list[Tensor], name:str|None=None) -> Callable:
 
-  module = build_ast(root, inputs=inputs, name=name)
-  code = compile(module, mode='exec', filename='compiledfunction')
-  namespace = {'PRIM':Primitives()}
-  exec(code, namespace)
-
-  return namespace[name if name is not None else "compiledfunction"]
+def forward(
+    root: Tensor | Sequence[Tensor],
+    name: Optional[str] = None,
+    inputs: Optional[Sequence[Tensor]] = None
+):
+    """
+    Compile a computation graph into a Python function.
+    - `inputs` explicitly defines the function arguments.
+    """
+    module = build_ast(root, name=name, inputs=inputs)
+    code = compile(module, filename="compiledfunction", mode="exec")
+    namespace = {"PRIM": Primitives()}
+    exec(code, namespace)
+    return namespace[name or "compiledfunction"]
