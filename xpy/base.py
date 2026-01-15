@@ -3,28 +3,43 @@ from typing import Callable
 
 lib = xp()
 
-class Primitives:
-    pass
+class NpPrimitives: pass
+class CpPrimitives: pass
 
 def add_prim(name: str):
-    global Primitives
-    # Handle both simple functions and nested modules
     parts = name.split('.')
-    obj = lib
-    for part in parts:
-        obj = getattr(obj, part)
-    
-    # Store with dots replaced by underscores for attribute access
-    attr_name = name.replace('.', '_')
-    setattr(Primitives, attr_name, staticmethod(obj))
+
+    import numpy as np
+    try:
+        obj = np
+        for p in parts:
+            obj = getattr(obj, p)
+        setattr(NpPrimitives, name.replace('.', '_'), staticmethod(obj))
+    except AttributeError:
+        pass
+
+    try:
+        obj = lib
+        for p in parts:
+            obj = getattr(obj, p)
+        setattr(CpPrimitives, name.replace('.', '_'), staticmethod(obj))
+    except AttributeError:
+        pass
 
 def add_prim_with_list(names: list[str]):
     for n in names:
         add_prim(n)
 
-def primitive(name: str):
-    return getattr(Primitives, name.replace('.', '_'))
 
+def primitive(device: str, name: str):
+    table = {'cpu': NpPrimitives, 'cuda': CpPrimitives}
+    cls = table.get(device)
+    if cls is None:
+        raise TypeError("device must be 'cpu' or 'cuda'")
+    attr = name.replace('.', '_')
+    if not hasattr(cls, attr):
+        raise KeyError(f"{name} not available for {device}")
+    return getattr(cls, attr)
 
 # ============ ABSOLUTE ESSENTIALS ============
 # These are the core operations that every JIT system needs
@@ -85,94 +100,26 @@ composite_ops = [
 ]
 
 # Add all essentials
-add_prim_with_list(elementwise_ops)
-add_prim_with_list(linear_algebra_ops)
-add_prim_with_list(reduction_ops)
-add_prim_with_list(array_manip_ops)
-# add_prim_with_list(special_ops)
-add_prim_with_list(optimization_ops)
 
-# ============ COMPOSITE IMPLEMENTATIONS ============
-# Add essential composite operations that are worth having as primitives
+def funbuild():
+    add_prim_with_list(elementwise_ops)
+    add_prim_with_list(linear_algebra_ops)
+    add_prim_with_list(reduction_ops)
+    add_prim_with_list(array_manip_ops)
+    add_prim_with_list(optimization_ops)
 
-def add_composite_primitives():
-    """Add essential composite operations that benefit from JIT"""
-    try:
-        # Softmax - critical for attention, often optimized
-        def softmax(x, axis=-1):
-            x_max = lib.max(x, axis=axis, keepdims=True)
-            x_safe = x - x_max
-            exp_x = lib.exp(x_safe)
-            return exp_x / lib.sum(exp_x, axis=axis, keepdims=True)
-        
-        Primitives.softmax = staticmethod(softmax)
-        
-        # LogSoftmax - more numerically stable
-        def log_softmax(x, axis=-1):
-            x_max = lib.max(x, axis=axis, keepdims=True)
-            x_safe = x - x_max
-            log_sum_exp = lib.log(lib.sum(lib.exp(x_safe), axis=axis, keepdims=True))
-            return x_safe - log_sum_exp
-        
-        Primitives.log_softmax = staticmethod(log_softmax)
-        
-        # ReLU - simple but everywhere
-        def relu(x):
-            return lib.maximum(x, 0)
-        
-        Primitives.relu = staticmethod(relu)
-        
-        # GELU approximation (used in Transformers)
-        def gelu(x):
-            # 0.5 * x * (1 + tanh(sqrt(2/pi) * (x + 0.044715 * x**3)))
-            sqrt_2_over_pi = lib.sqrt(2 / lib.pi)
-            return 0.5 * x * (1 + lib.tanh(sqrt_2_over_pi * (x + 0.044715 * x**3)))
-        
-        Primitives.gelu = staticmethod(gelu)
-        
-        # LayerNorm helper
-        def normalize(x, axis=-1, eps=1e-5):
-            mean = lib.mean(x, axis=axis, keepdims=True)
-            var = lib.var(x, axis=axis, keepdims=True)
-            return (x - mean) / lib.sqrt(var + eps)
-        
-        Primitives.normalize = staticmethod(normalize)
-        
-    except Exception as e:
-        print(f"Warning: Could not add composite primitives: {e}")
-
-add_composite_primitives()
-
-# ============ MINIMALIST ALTERNATIVE ============
-"""
-If you want the ABSOLUTE minimum for a JAX-like system:
-
-MINIMAL_PRIMITIVES = [
-    # Elementwise
-    'add', 'multiply', 'subtract', 'divide',
-    'exp', 'log', 'sin', 'cos', 'tanh',
-    'maximum', 'minimum', 'greater', 'less',
-    
-    # Linear algebra
-    'matmul', 'dot',
-    
-    # Reductions
-    'sum', 'max', 'min',
-    
-    # Array manipulation
-    'reshape', 'transpose', 'concatenate',
-    
-    # Special
-    'where',
-    
-    # That's it! Everything else can be built from these.
-]
-"""
-
-# print(f"Total primitives loaded: {len([x for x in dir(Primitives) if not x.startswith('_')])}")
-
+funbuild()
 
 def construct(func:Callable, name:str):
-    global Primitives
-    setattr(Primitives, name, staticmethod(func))
+    global CpPrimitives, NpPrimitives
+    lib = xp() 
+    import numpy as np
+
+    name = lib.__name__
+    ptype = CpPrimitives if name == 'cupy' else None
+    if ptype is None:
+        pass
+    else:
+        setattr(CpPrimitives, name, staticmethod(func))
+    setattr(NpPrimitives, name, staticmethod(func))
 
