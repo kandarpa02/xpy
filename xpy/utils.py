@@ -2,16 +2,33 @@ from .base import primitive
 
 dmap = {'cupy':'cuda', 'numpy':'cpu'}
 
-def shift_dvice_(data, device:str):
-  if not device.lower() in {'cpu', 'cuda'}: 
-    raise TypeError(f"Unknown device '{device}'. Only 'cpu' and 'cuda' is supported")
+def shift_device_(data, device: str):
+  device = device.lower()
+  if device not in {"cpu", "cuda"}:
+    raise TypeError(
+      f"Unknown device '{device}'. Only 'cpu' and 'cuda' are supported"
+    )
+
   from .backend import xp
   lib = xp()
+
   import numpy as np
-  if device == 'cuda':
-    if lib.__name__ == 'cupy':
-      return lib.array(data)
-    else:
-      raise ValueError(f"'cuda' device is not available, try 'cpu'. ")
-  
-  return np.array(data)
+
+  if device == "cuda":
+    if lib.__name__ != "cupy":
+        raise ValueError("'cuda' device is not available, try 'cpu'.")
+
+    if isinstance(data, np.ndarray):
+      return lib.asarray(data)
+
+    # already cupy
+    if isinstance(data, lib.ndarray):
+      return data
+
+    return lib.asarray(data)
+
+  if lib.__name__ == "cupy":
+    if isinstance(data, lib.ndarray):
+      return data.get()   # 🔥 required
+
+  return np.asarray(data)
